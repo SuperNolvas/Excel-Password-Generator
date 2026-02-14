@@ -1,0 +1,3 @@
+# Ignore Excel workbooks and temporary Excel files
+*.xlsx
+~$*.xlsx
