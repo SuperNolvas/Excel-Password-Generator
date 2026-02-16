@@ -1,3 +1,7 @@
 # Ignore Excel workbooks and temporary Excel files
 *.xlsx
 ~$*.xlsx
+
+# Python cache files
+__pycache__/
+*.py[cod]
