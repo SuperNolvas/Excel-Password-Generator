@@ -58,27 +58,24 @@ def build_candidate_intact(w1: str, w2: str):
 
 
 def ensure_requirements_readable(password: str):
-    # Passwords constructed from intact words should already have upper+lower; ensure digit and symbol exist
+    # Ensure password has at least one digit and at least one symbol (but no more than two symbols).
     s = password
     if not any(c.isdigit() for c in s):
         s = s + random.choice(string.digits)
-    if not any(c in SYMBOLS for c in s):
+    present_symbols = [c for c in s if c in SYMBOLS]
+    if not present_symbols:
         s = s + random.choice(SYMBOLS)
     return s
 
 
 def generate_password(words, max_attempts=1000):
     patterns = [
-        # word1 + digit + word2 + symbol
-        lambda a, b, d, s: f"{a}{d}{b}{s}",
-        # digit + word1 + symbol + word2 + symbol
-        lambda a, b, d, s: f"{d}{a}{s}{b}{s}",
-        # word1 + symbol + word2 + digit
-        lambda a, b, d, s: f"{a}{s}{b}{d}",
-        # word1 + symbol + word2 + symbol + digit
-        lambda a, b, d, s: f"{a}{s}{b}{s}{d}",
-        # digit + word1 + word2 + symbol
-        lambda a, b, d, s: f"{d}{a}{b}{s}",
+        # (callable, symbol_slots)
+        (lambda a, b, d, s1, s2: f"{a}{d}{b}{s1}", 1),
+        (lambda a, b, d, s1, s2: f"{d}{a}{s1}{b}{s2}", 2),
+        (lambda a, b, d, s1, s2: f"{a}{s1}{b}{d}", 1),
+        (lambda a, b, d, s1, s2: f"{a}{s1}{b}{s2}{d}", 2),
+        (lambda a, b, d, s1, s2: f"{d}{a}{b}{s1}", 1),
     ]
 
     for _ in range(max_attempts):
@@ -86,13 +83,29 @@ def generate_password(words, max_attempts=1000):
         w2 = random.choice(words)
         a, b = build_candidate_intact(w1, w2)
         d = random.choice(string.digits)
-        s = random.choice(SYMBOLS)
-        pattern = random.choice(patterns)
-        pwd = pattern(a, b, d, s)
+        pattern, slots = random.choice(patterns)
+        if slots == 1:
+            s1 = random.choice(SYMBOLS)
+            s2 = ''
+        else:
+            s1, s2 = random.sample(SYMBOLS, 2)
+        pwd = pattern(a, b, d, s1, s2)
         # ensure within length bounds; if too short, append a digit or symbol (keeps words intact)
         if len(pwd) < 10:
-            padding = ''.join(random.choices(string.digits + ''.join(SYMBOLS), k=(10 - len(pwd))))
-            pwd = pwd + padding
+            need = 10 - len(pwd)
+            present_symbols = [c for c in pwd if c in SYMBOLS]
+            padding_chars = []
+            # If no symbol present, ensure we add exactly one unique symbol (to meet min-1)
+            if not present_symbols and need > 0:
+                # pick one symbol not already present
+                sym = random.choice([x for x in SYMBOLS if x not in present_symbols])
+                padding_chars.append(sym)
+                need -= 1
+            # fill remaining padding with digits only to avoid exceeding 2 symbols
+            if need > 0:
+                padding_chars.extend(random.choices(string.digits, k=need))
+            random.shuffle(padding_chars)
+            pwd = pwd + ''.join(padding_chars)
         if 10 <= len(pwd) <= 32:
             pwd = ensure_requirements_readable(pwd)
             if 10 <= len(pwd) <= 32:
