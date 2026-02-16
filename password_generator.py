@@ -70,7 +70,10 @@ def ensure_requirements_readable(password: str):
 
 def generate_password(words, max_attempts=1000):
     patterns = [
-        # (callable, symbol_slots)
+        # Each entry is a tuple: (callable, symbol_slots)
+        # - callable: function(a, b, d, s1, s2) that builds a password string
+        # - symbol_slots: 1 or 2 indicating how many distinct symbol placeholders
+        #   the callable expects (s2 may be empty for a single-slot pattern)
         (lambda a, b, d, s1, s2: f"{a}{d}{b}{s1}", 1),
         (lambda a, b, d, s1, s2: f"{d}{a}{s1}{b}{s2}", 2),
         (lambda a, b, d, s1, s2: f"{a}{s1}{b}{d}", 1),
@@ -90,7 +93,11 @@ def generate_password(words, max_attempts=1000):
         else:
             s1, s2 = random.sample(SYMBOLS, 2)
         pwd = pattern(a, b, d, s1, s2)
-        # ensure within length bounds; if too short, append a digit or symbol (keeps words intact)
+        # Ensure password length is within bounds. If shorter than minimum (10),
+        # add padding while preserving the intact word parts:
+        # - If the password contains no symbol, add exactly one unique symbol to satisfy
+        #   the requirement of at least one symbol (but never add more than two symbols).
+        # - Fill remaining padding with digits only to avoid introducing additional symbols.
         if len(pwd) < 10:
             need = 10 - len(pwd)
             present_symbols = [c for c in pwd if c in SYMBOLS]
