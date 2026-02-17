@@ -5,3 +5,7 @@
 # Python cache files
 __pycache__/
 *.py[cod]
+
+# Ignore email template files
+EXTERNAL EMAIL TEMPLATES/*.eml
+*.eml
