@@ -168,6 +168,108 @@ def protect_excel_with_password(path: str, password: str):
         return False
 
 
+def attach_xlsx_to_eml(xlsx_path: str, templates_dir: str = "EXTERNAL EMAIL TEMPLATES"):
+    """Present available .eml templates and attach the given Excel file to the chosen template.
+
+    Returns the path to the saved .eml file or None if cancelled / not possible.
+    """
+    from pathlib import Path
+    from email import message_from_binary_file
+    from email.policy import default
+
+    tpl_dir = Path(templates_dir)
+    if not tpl_dir.exists() or not tpl_dir.is_dir():
+        print(f"Templates folder not found: '{templates_dir}'")
+        return None
+
+    eml_files = sorted([p for p in tpl_dir.glob("*.eml") if p.is_file()])
+    if not eml_files:
+        print(f"No .eml templates found in '{templates_dir}'.")
+        return None
+
+    print("Select a template to attach the Excel file to:")
+    for i, p in enumerate(eml_files, start=1):
+        print(f"{i}: {p.name}")
+    print("0: Cancel")
+
+    while True:
+        sel = input(f"Enter number (0-{len(eml_files)}): ").strip()
+        if sel == '0':
+            print("Attachment cancelled.")
+            return None
+        if not sel.isdigit():
+            print("Please enter a number.")
+            continue
+        idx = int(sel) - 1
+        if 0 <= idx < len(eml_files):
+            chosen = eml_files[idx]
+            break
+        print("Invalid selection, try again.")
+
+    # Load template message
+    try:
+        with chosen.open('rb') as f:
+            msg = message_from_binary_file(f, policy=default)
+    except Exception as e:
+        print(f"Failed to load template '{chosen}': {e}")
+        return None
+
+    # Prompt for recipient email (optional) and set/replace the To header
+    try:
+        recipient = input("Enter recipient email address (paste and press Enter). Leave blank to keep template recipient: ").strip()
+        if recipient:
+            try:
+                if 'To' in msg:
+                    msg.replace_header('To', recipient)
+                else:
+                    msg['To'] = recipient
+            except Exception:
+                # Fallback: set header directly
+                msg['To'] = recipient
+    except Exception:
+        # Don't fail attachment if input can't be read for any reason
+        recipient = ''
+
+    # Read excel bytes
+    xlsx_path_obj = Path(xlsx_path)
+    if not xlsx_path_obj.exists():
+        print(f"Excel file not found: {xlsx_path}")
+        return None
+    try:
+        with xlsx_path_obj.open('rb') as f:
+            xlsx_data = f.read()
+    except Exception as e:
+        print(f"Failed to read Excel file: {e}")
+        return None
+
+    xlsx_name = xlsx_path_obj.name
+
+    # Attach the workbook (email lib will convert to multipart if needed)
+    try:
+        msg.add_attachment(
+            xlsx_data,
+            maintype='application',
+            subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            filename=xlsx_name,
+        )
+    except Exception as e:
+        print(f"Failed to attach file to message: {e}")
+        return None
+
+    # Save output .eml
+    out_name = f"READY_TO_SEND_{chosen.stem}_{xlsx_name}.eml"
+    out_path = Path(out_name)
+    try:
+        with out_path.open('wb') as f:
+            f.write(msg.as_bytes(policy=default))
+    except Exception as e:
+        print(f"Failed to save attached email: {e}")
+        return None
+
+    print(f"Saved attached email as: {out_path}")
+    return out_path
+
+
 def prompt_yes_no(prompt: str) -> bool:
     while True:
         ans = input(Fore.CYAN + prompt + " [y/n]: " + Style.RESET_ALL).strip().lower()
@@ -242,6 +344,14 @@ def main():
                 print('Excel file left unprotected (see warning above).')
         else:
             print('No password entered; skipping protection.')
+
+    # Offer to attach the generated Excel file to an .eml template
+    try:
+        if prompt_yes_no('Attach the generated Excel file to an .eml template from EXTERNAL EMAIL TEMPLATES?'):
+            attach_xlsx_to_eml(out_name)
+    except Exception:
+        # Defensive: do not let attachment errors break existing workflow
+        print('Attachment step skipped due to unexpected error.')
 
     print('Done.')
 
