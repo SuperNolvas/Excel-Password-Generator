@@ -33,7 +33,11 @@ except Exception as e:
     raise
 
 SYMBOLS = list('!"£$%@#*^')
-
+EXCEL_DIR = "TEMP EXCEL PASSWORDS"
+EMAIL_DIR = "READY EMAILS"
+# Ensure output folders exist
+Path(EXCEL_DIR).mkdir(parents=True, exist_ok=True)
+Path(EMAIL_DIR).mkdir(parents=True, exist_ok=True)
 
 def load_dictionary(path: str = "dictionary.txt"):
     p = Path(path)
@@ -168,7 +172,7 @@ def protect_excel_with_password(path: str, password: str):
         return False
 
 
-def attach_xlsx_to_eml(xlsx_path: str, templates_dir: str = "EXTERNAL EMAIL TEMPLATES"):
+def attach_xlsx_to_eml(xlsx_path: str, templates_dir: str = "EXTERNAL EMAIL TEMPLATES", ready_dir: str = EMAIL_DIR):
     """Present available .eml templates and attach the given Excel file to the chosen template.
 
     Returns the path to the saved .eml file or None if cancelled / not possible.
@@ -256,9 +260,11 @@ def attach_xlsx_to_eml(xlsx_path: str, templates_dir: str = "EXTERNAL EMAIL TEMP
         print(f"Failed to attach file to message: {e}")
         return None
 
-    # Save output .eml
-    out_name = f"READY_TO_SEND_{chosen.stem}_{xlsx_name}.eml"
-    out_path = Path(out_name)
+    # Save output .eml into the ready emails directory
+    out_filename = f"READY_TO_SEND_{chosen.stem}_{xlsx_name}.eml"
+    out_dir = Path(ready_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / out_filename
     try:
         with out_path.open('wb') as f:
             f.write(msg.as_bytes(policy=default))
@@ -300,35 +306,31 @@ def main():
         print(Fore.MAGENTA + '===========================' + Style.RESET_ALL)
         if prompt_yes_no('Accept this password?'):
             break
-    # write to excel with safe overwrite handling
+    # write to excel with safe overwrite handling (store in TEMP EXCEL PASSWORDS)
     default_name = 'password.xlsx'
     while True:
-        out_name = input(f"Enter output Excel filename [{default_name}]: ").strip() or default_name
-        if not out_name.lower().endswith('.xlsx'):
-            out_name += '.xlsx'
-        out_path = Path(out_name)
+        base_name = input(f"Enter output Excel filename [{default_name}]: ").strip() or default_name
+        if not base_name.lower().endswith('.xlsx'):
+            base_name += '.xlsx'
+        out_path = Path(EXCEL_DIR) / base_name
         if out_path.exists():
-            print(f"File '{out_name}' already exists.")
-            # Present safe options with non-destructive choice first
+            print(f"File '{out_path.name}' already exists in '{EXCEL_DIR}'.")
             print("Choose an action: (E)nter new filename  (O)verwrite file  (C)ancel")
             choice = input("Enter choice [E/O/C] (default E): ").strip().lower() or 'e'
             if choice.startswith('e'):
-                # loop back to ask for a different filename
                 continue
             if choice.startswith('o'):
-                # proceed to overwrite
                 break
             if choice.startswith('c'):
                 print('Operation cancelled.')
                 sys.exit(0)
-            # unrecognized -> ask again
             continue
         else:
             break
 
     try:
-        write_password_to_excel(pwd, out_name)
-        print('\n' + Fore.CYAN + f"Password written to first cell of {out_name}" + Style.RESET_ALL)
+        write_password_to_excel(pwd, str(out_path))
+        print('\n' + Fore.CYAN + f"Password written to first cell of {out_path}" + Style.RESET_ALL)
     except Exception as e:
         print(Fore.RED + f"Failed to write Excel file: {e}" + Style.RESET_ALL)
         sys.exit(1)
@@ -337,7 +339,7 @@ def main():
     if protect:
         weekly = input('Paste external weekly password (will be used to protect Excel file): ').rstrip('\n')
         if weekly:
-            ok = protect_excel_with_password(out_name, weekly)
+            ok = protect_excel_with_password(str(out_path), weekly)
             if ok:
                 print('Excel file protected with provided password.')
             else:
@@ -348,7 +350,7 @@ def main():
     # Offer to attach the generated Excel file to an .eml template
     try:
         if prompt_yes_no('Attach the generated Excel file to an .eml template from EXTERNAL EMAIL TEMPLATES?'):
-            attach_xlsx_to_eml(out_name)
+            attach_xlsx_to_eml(str(out_path), ready_dir=EMAIL_DIR)
     except Exception:
         # Defensive: do not let attachment errors break existing workflow
         print('Attachment step skipped due to unexpected error.')
