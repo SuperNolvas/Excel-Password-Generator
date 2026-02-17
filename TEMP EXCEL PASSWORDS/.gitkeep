@@ -1,0 +1,2 @@
+This file ensures the "TEMP EXCEL PASSWORDS" folder is tracked by Git while
+its runtime contents remain ignored via .gitignore.

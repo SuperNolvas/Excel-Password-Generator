@@ -1,0 +1,2 @@
+This file ensures the "READY EMAILS" folder is tracked by Git while
+its runtime contents remain ignored via .gitignore.

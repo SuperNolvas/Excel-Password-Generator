@@ -9,3 +9,10 @@ __pycache__/
 # Ignore email template files
 EXTERNAL EMAIL TEMPLATES/*.eml
 *.eml
+
+# Ignore runtime output folders but keep placeholder .gitkeep files tracked
+READY EMAILS/*
+!READY EMAILS/.gitkeep
+
+TEMP EXCEL PASSWORDS/*
+!TEMP EXCEL PASSWORDS/.gitkeep
