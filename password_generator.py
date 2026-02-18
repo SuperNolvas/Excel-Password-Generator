@@ -304,7 +304,7 @@ def attach_xlsx_to_eml(xlsx_path: str, templates_dir: str = "EXTERNAL EMAIL TEMP
         print(f"Failed to save attached email: {e}")
         return None
 
-    print(f"Saved attached email as: {out_path}")
+    print(Fore.YELLOW + f"Saved attached email as: {out_path}" + Style.RESET_ALL)
     return out_path
 
 
