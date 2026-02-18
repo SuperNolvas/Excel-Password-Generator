@@ -355,6 +355,39 @@ def main():
         # Defensive: do not let attachment errors break existing workflow
         print('Attachment step skipped due to unexpected error.')
 
+    # Workflow reminders: confirm AD and M365 password set manually
+    try:
+        if not prompt_yes_no('Confirm password set for Active Directory?'):
+            print(Fore.YELLOW + 'Reminder: Set Active Directory password manually before finishing.' + Style.RESET_ALL)
+    except Exception:
+        pass
+
+    try:
+        if not prompt_yes_no('Confirm password set for M365?'):
+            print(Fore.YELLOW + 'Reminder: Set M365 password manually before finishing.' + Style.RESET_ALL)
+    except Exception:
+        pass
+
+    # Attempt to open the READY EMAILS folder in File Explorer (Windows)
+    try:
+        folder_path = os.path.abspath(EMAIL_DIR)
+        if os.path.isdir(folder_path):
+            try:
+                os.startfile(folder_path)
+                print(Fore.CYAN + f"Opened ready emails folder: {folder_path}" + Style.RESET_ALL)
+            except Exception:
+                # Fallback to explorer via subprocess
+                try:
+                    import subprocess
+                    subprocess.run(['explorer', folder_path])
+                    print(Fore.CYAN + f"Opened ready emails folder via explorer: {folder_path}" + Style.RESET_ALL)
+                except Exception as e:
+                    print(Fore.YELLOW + f"Could not open READY EMAILS folder: {e}" + Style.RESET_ALL)
+        else:
+            print(Fore.YELLOW + f"Ready emails folder not found: {folder_path}" + Style.RESET_ALL)
+    except Exception as e:
+        print(Fore.YELLOW + f"Could not open READY EMAILS folder: {e}" + Style.RESET_ALL)
+
     print('Done.')
 
 
