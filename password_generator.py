@@ -304,7 +304,9 @@ def main():
         has_symbol = any(c in SYMBOLS for c in pwd)
         print(Fore.YELLOW + f"Length: {length}    Upper: {has_upper}    Lower: {has_lower}    Digit: {has_digit}    Symbol: {has_symbol}" + Style.RESET_ALL)
         print(Fore.MAGENTA + '===========================' + Style.RESET_ALL)
-        if prompt_yes_no('Accept this password?'):
+        resp = prompt_yes_no('Accept this password?')
+        print()
+        if resp:
             break
     # write to excel with safe overwrite handling (store in TEMP EXCEL PASSWORDS)
     default_name = 'password.xlsx'
@@ -335,7 +337,9 @@ def main():
         print(Fore.RED + f"Failed to write Excel file: {e}" + Style.RESET_ALL)
         sys.exit(1)
 
+    print()
     protect = prompt_yes_no('Would you like to password-protect the Excel file (requires Excel on Windows) with an external weekly password?')
+    print()
     if protect:
         weekly = input('Paste external weekly password (will be used to protect Excel file): ').rstrip('\n')
         if weekly:
@@ -349,7 +353,10 @@ def main():
 
     # Offer to attach the generated Excel file to an .eml template
     try:
-        if prompt_yes_no('Attach the generated Excel file to an .eml template from EXTERNAL EMAIL TEMPLATES?'):
+        print()
+        attach_resp = prompt_yes_no('Attach the generated Excel file to an .eml template from EXTERNAL EMAIL TEMPLATES?')
+        print()
+        if attach_resp:
             attach_xlsx_to_eml(str(out_path), ready_dir=EMAIL_DIR)
     except Exception:
         # Defensive: do not let attachment errors break existing workflow
@@ -357,13 +364,18 @@ def main():
 
     # Workflow reminders: confirm AD and M365 password set manually
     try:
-        if not prompt_yes_no('Confirm password set for Active Directory?'):
+        print()
+        ad_resp = prompt_yes_no('Confirm password set for Active Directory?')
+        print()
+        if not ad_resp:
             print(Fore.YELLOW + 'Reminder: Set Active Directory password manually before finishing.' + Style.RESET_ALL)
     except Exception:
         pass
 
     try:
-        if not prompt_yes_no('Confirm password set for M365?'):
+        m365_resp = prompt_yes_no('Confirm password set for M365?')
+        print()
+        if not m365_resp:
             print(Fore.YELLOW + 'Reminder: Set M365 password manually before finishing.' + Style.RESET_ALL)
     except Exception:
         pass
