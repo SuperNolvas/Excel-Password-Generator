@@ -265,6 +265,38 @@ def attach_xlsx_to_eml(xlsx_path: str, templates_dir: str = "EXTERNAL EMAIL TEMP
     out_dir = Path(ready_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / out_filename
+    
+    # Check if file exists and handle accordingly
+    if out_path.exists():
+        print(f"File '{out_filename}' already exists in '{ready_dir}'.")
+        print("Choose an action: (E)nter new filename  (O)verwrite file  (C)ancel")
+        choice = input("Enter choice [E/O/C] (default E): ").strip().lower() or 'e'
+        if choice.startswith('e'):
+            # Generate new filename with counter
+            counter = 1
+            base_name = out_filename.replace('.eml', '')
+            while True:
+                out_filename = f"{base_name}_{counter}.eml"
+                out_path = out_dir / out_filename
+                if not out_path.exists():
+                    break
+                counter += 1
+        elif choice.startswith('o'):
+            pass  # Proceed with overwrite
+        elif choice.startswith('c'):
+            print("Email attachment cancelled.")
+            return None
+        else:
+            # Invalid choice, default to rename
+            counter = 1
+            base_name = out_filename.replace('.eml', '')
+            while True:
+                out_filename = f"{base_name}_{counter}.eml"
+                out_path = out_dir / out_filename
+                if not out_path.exists():
+                    break
+                counter += 1
+    
     try:
         with out_path.open('wb') as f:
             f.write(msg.as_bytes(policy=default))
