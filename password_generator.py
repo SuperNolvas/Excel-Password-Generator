@@ -370,7 +370,7 @@ def main():
         sys.exit(1)
 
     print()
-    protect = prompt_yes_no('Would you like to password-protect the Excel file (requires Excel on Windows) with an external weekly password?')
+    protect = prompt_yes_no('Would you like to password-protect the Excel file with an external weekly password?')
     print()
     if protect:
         weekly = input('Paste external weekly password (will be used to protect Excel file): ').rstrip('\n')
