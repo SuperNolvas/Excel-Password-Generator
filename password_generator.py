@@ -32,7 +32,7 @@ except Exception as e:
     print("Missing dependency openpyxl. Install with: pip install -r requirements.txt")
     raise
 
-SYMBOLS = list('!"£$%@#*^')
+SYMBOLS = list('!"$%@#*')
 EXCEL_DIR = "TEMP EXCEL PASSWORDS"
 EMAIL_DIR = "READY EMAILS"
 # Ensure output folders exist
@@ -340,12 +340,31 @@ def main():
         print()
         if resp:
             break
+    
+    # Copy password to clipboard
+    try:
+        import subprocess
+        process = subprocess.Popen(['clip.exe'], stdin=subprocess.PIPE)
+        process.communicate(pwd.encode('utf-8'))
+        print(Fore.GREEN + "Password copied to clipboard!" + Style.RESET_ALL)
+    except Exception as e:
+        print(Fore.YELLOW + f"Could not copy to clipboard: {e}" + Style.RESET_ALL)
+    
     # write to excel with safe overwrite handling (store in TEMP EXCEL PASSWORDS)
     default_name = 'password.xlsx'
     while True:
         base_name = input(f"Enter output Excel filename [{default_name}]: ").strip() or default_name
         if not base_name.lower().endswith('.xlsx'):
             base_name += '.xlsx'
+        # Prevent filename matching the generated password (avoid insecure setup
+        # where the workbook open-password equals the password stored inside)
+        try:
+            if Path(base_name).stem == pwd:
+                print(Fore.RED + "Filename must not be the same as the generated password. Please choose a different filename." + Style.RESET_ALL)
+                continue
+        except Exception:
+            # If any unexpected issue arises comparing names, fall back to normal flow
+            pass
         out_path = Path(EXCEL_DIR) / base_name
         if out_path.exists():
             print(f"File '{out_path.name}' already exists in '{EXCEL_DIR}'.")
@@ -373,15 +392,22 @@ def main():
     protect = prompt_yes_no('Would you like to password-protect the Excel file with an external weekly password?')
     print()
     if protect:
-        weekly = input('Paste external weekly password (will be used to protect Excel file): ').rstrip('\n')
-        if weekly:
+        # Prompt for the external weekly password, but ensure it is NOT the
+        # same as the generated password (to avoid insecure setup).
+        while True:
+            weekly = input('Paste external weekly password (will be used to protect Excel file): ').rstrip('\n')
+            if not weekly:
+                print('No password entered; skipping protection.')
+                break
+            if weekly == pwd:
+                print(Fore.RED + 'The external weekly password must not be the same as the generated password. Please enter a different password.' + Style.RESET_ALL)
+                continue
             ok = protect_excel_with_password(str(out_path), weekly)
             if ok:
                 print('Excel file protected with provided password.')
             else:
                 print('Excel file left unprotected (see warning above).')
-        else:
-            print('No password entered; skipping protection.')
+            break
 
     # Offer to attach the generated Excel file to an .eml template
     try:
