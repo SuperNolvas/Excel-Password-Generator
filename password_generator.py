@@ -432,19 +432,19 @@ def main():
     # Workflow reminders: confirm AD and M365 password set manually
     try:
         print()
-        ad_resp = prompt_yes_no('Confirm you have set the password for ' + Style.BRIGHT + 'Active Directory' + Style.RESET_ALL + '?')
+        ad_resp = prompt_yes_no('Confirm you have set the password for ' + Fore.YELLOW + Style.BRIGHT + 'Active Directory' + Style.RESET_ALL + '?')
         print()
         if not ad_resp:
-            print(Fore.YELLOW + 'Reminder: Set ' + Style.BRIGHT + 'Active Directory' + Style.RESET_ALL + ' password manually before sending email.' + Style.RESET_ALL)
+            print(Fore.YELLOW + 'Reminder: Set ' + Fore.YELLOW + Style.BRIGHT + 'Active Directory' + Style.RESET_ALL + ' password manually before sending email.' + Style.RESET_ALL)
             print()
     except Exception:
         pass
 
     try:
-        m365_resp = prompt_yes_no('Confirm you have set the password for ' + Style.BRIGHT + 'M365' + Style.RESET_ALL + '?')
+        m365_resp = prompt_yes_no('Confirm you have set the password for ' + Fore.YELLOW + Style.BRIGHT + 'M365' + Style.RESET_ALL + '?')
         print()
         if not m365_resp:
-            print(Fore.YELLOW + 'Reminder: Set ' + Style.BRIGHT + 'M365' + Style.RESET_ALL + ' password manually before sending email.' + Style.RESET_ALL)
+            print(Fore.YELLOW + 'Reminder: Set ' + Fore.YELLOW + Style.BRIGHT + 'M365' + Style.RESET_ALL + ' password manually before sending email.' + Style.RESET_ALL)
             print()
     except Exception:
         pass
