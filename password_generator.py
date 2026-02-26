@@ -209,6 +209,9 @@ def attach_xlsx_to_eml(xlsx_path: str, templates_dir: str = "EXTERNAL EMAIL TEMP
             chosen = eml_files[idx]
             break
         print("Invalid selection, try again.")
+        
+    # separate selection from subsequent prompts
+    print()
 
     # Load template message
     try:
@@ -304,13 +307,14 @@ def attach_xlsx_to_eml(xlsx_path: str, templates_dir: str = "EXTERNAL EMAIL TEMP
         print(f"Failed to save attached email: {e}")
         return None
 
+    print()
     print(Fore.YELLOW + f"Saved attached email as: {out_path}" + Style.RESET_ALL)
     return out_path
 
 
 def prompt_yes_no(prompt: str) -> bool:
     while True:
-        ans = input(Fore.CYAN + prompt + " [y/n]: " + Style.RESET_ALL).strip().lower()
+        ans = input(Fore.WHITE + prompt + " [y/n]: " + Style.RESET_ALL).strip().lower()
         if ans in ('y', 'yes'):
             return True
         if ans in ('n', 'no'):
@@ -347,6 +351,7 @@ def main():
         process = subprocess.Popen(['clip.exe'], stdin=subprocess.PIPE)
         process.communicate(pwd.encode('utf-8'))
         print(Fore.GREEN + "Password copied to clipboard!" + Style.RESET_ALL)
+        print()
     except Exception as e:
         print(Fore.YELLOW + f"Could not copy to clipboard: {e}" + Style.RESET_ALL)
     
@@ -367,16 +372,19 @@ def main():
             pass
         out_path = Path(EXCEL_DIR) / base_name
         if out_path.exists():
-            print(f"File '{out_path.name}' already exists in '{EXCEL_DIR}'.")
+            print(Fore.RED + f"File '{out_path.name}' already exists in '{EXCEL_DIR}'." + Style.RESET_ALL)
             print("Choose an action: (E)nter new filename  (O)verwrite file  (C)ancel")
             choice = input("Enter choice [E/O/C] (default E): ").strip().lower() or 'e'
             if choice.startswith('e'):
-                continue
-            if choice.startswith('o'):
+                # user wants to enter a new filename, fall through to top of loop
+                pass
+            elif choice.startswith('o'):
                 break
-            if choice.startswith('c'):
+            elif choice.startswith('c'):
                 print('Operation cancelled.')
                 sys.exit(0)
+            # loop again for either 'e' or an invalid response; always add spacing
+            print()
             continue
         else:
             break
@@ -404,7 +412,8 @@ def main():
                 continue
             ok = protect_excel_with_password(str(out_path), weekly)
             if ok:
-                print('Excel file protected with provided password.')
+                print()
+                print(Fore.GREEN + 'Excel file protected with provided password.' + Style.RESET_ALL)
             else:
                 print('Excel file left unprotected (see warning above).')
             break
@@ -423,7 +432,7 @@ def main():
     # Workflow reminders: confirm AD and M365 password set manually
     try:
         print()
-        ad_resp = prompt_yes_no('Confirm password set for Active Directory?')
+        ad_resp = prompt_yes_no('Confirm you have set the password for Active Directory?')
         print()
         if not ad_resp:
             print(Fore.YELLOW + 'Reminder: Set Active Directory password manually before finishing.' + Style.RESET_ALL)
@@ -431,7 +440,7 @@ def main():
         pass
 
     try:
-        m365_resp = prompt_yes_no('Confirm password set for M365?')
+        m365_resp = prompt_yes_no('Confirm you have set the password for M365?')
         print()
         if not m365_resp:
             print(Fore.YELLOW + 'Reminder: Set M365 password manually before finishing.' + Style.RESET_ALL)
