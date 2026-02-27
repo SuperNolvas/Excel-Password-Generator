@@ -10,10 +10,12 @@ import sys
 
 from pathlib import Path
 try:
-    from colorama import init as colorama_init, Fore, Style
+    from colorama import init as colorama_init, deinit as colorama_deinit, Fore, Style
     colorama_init(autoreset=True)
 except Exception:
-    # colorama is optional; output will still work without colors
+    # colorama is optional; output will still work without colours.
+    # define dummy objects with the same attributes so that the rest of the
+    # script can reference them without import errors.
     class Fore:
         RED = ''
         GREEN = ''
@@ -32,9 +34,18 @@ except Exception as e:
     print("Missing dependency openpyxl. Install with: pip install -r requirements.txt")
     raise
 
-SYMBOLS = list('!"$%@#*')
+SYMBOLS = list('*&^%$#!@')
 EXCEL_DIR = "TEMP EXCEL PASSWORDS"
 EMAIL_DIR = "READY EMAILS"
+
+# helper ------------------------------------------------------------------
+
+def _reset_color() -> None:
+    # Reset the terminal colour and flush stdout immediately.
+    
+    sys.stdout.write(Style.RESET_ALL)
+    sys.stdout.flush()
+
 # Ensure output folders exist
 Path(EXCEL_DIR).mkdir(parents=True, exist_ok=True)
 Path(EMAIL_DIR).mkdir(parents=True, exist_ok=True)
@@ -106,7 +117,7 @@ def generate_password(words, max_attempts=1000):
             need = 10 - len(pwd)
             present_symbols = [c for c in pwd if c in SYMBOLS]
             padding_chars = []
-            # If no symbol present, ensure we add exactly one unique symbol (to meet min-1)
+            # If no symbol present, ensure to add exactly one unique symbol (to meet min-1)
             if not present_symbols and need > 0:
                 # pick one symbol not already present
                 sym = random.choice([x for x in SYMBOLS if x not in present_symbols])
@@ -313,8 +324,15 @@ def attach_xlsx_to_eml(xlsx_path: str, templates_dir: str = "EXTERNAL EMAIL TEMP
 
 
 def prompt_yes_no(prompt: str) -> bool:
+    # Ask a yes/no question on the console and return True for yes.
+
     while True:
         ans = input(Fore.WHITE + prompt + " [y/n]: " + Style.RESET_ALL).strip().lower()
+        # colourama's ``autoreset`` only affects ``print``; ``input`` simply
+        # writes the prompt and leaves the terminal state as it was at the end
+        # of the string.  Explicitly clear any styling here to avoid leaking
+        # colour to following text.
+        _reset_color()
         if ans in ('y', 'yes'):
             return True
         if ans in ('n', 'no'):
@@ -450,7 +468,10 @@ def main():
         pass
 
     # Finish confirmation
+    # make sure the prompt itself can't leave the cursor coloured
+    _reset_color()
     input("Press ENTER to finish ")
+    # colour state is now definitely reset, print a newline just in case
     print()
 
     # Attempt to open the READY EMAILS folder in File Explorer (Windows)
@@ -474,7 +495,22 @@ def main():
         print(Fore.YELLOW + f"Could not open READY EMAILS folder: {e}" + Style.RESET_ALL)
 
     print('Done.')
+    # final safety: clear any styling before the script returns to the shell
+    _reset_color()
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    finally:
+        # restore console state if colourama was initialised; this ensures
+        # even if an error occurs it won't leave the terminal coloured.
+        try:
+            colorama_deinit()
+        except Exception:
+            pass
+        # make absolutely sure and flush a reset sequence
+        try:
+            _reset_color()
+        except Exception:
+            pass
